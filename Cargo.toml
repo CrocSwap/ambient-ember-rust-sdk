@@ -1,0 +1,7 @@
+cargo-features = ["edition2024"]
+
+[workspace]
+members = [
+    "core",
+]
+resolver = "3"

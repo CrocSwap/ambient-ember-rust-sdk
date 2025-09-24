@@ -1,0 +1,17 @@
+[package]
+name = "ember-core"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+default = []
+permit-signing = ["ed25519-dalek"]
+
+[dependencies]
+borsh = "0.9.3"
+solana-program = "1.18.26"
+ed25519-dalek = { version = "1", optional = true }
+
+[lib]
+name = "ember_core"
+crate-type = ["lib"] 
