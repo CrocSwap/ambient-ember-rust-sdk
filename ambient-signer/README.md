@@ -21,16 +21,19 @@ ambient-signer = { path = "../ambient-signer" }
 
 ## Dependencies
 
-- `borsh = "0.9.3"` - For serialization
-- `solana-program = "1.18.26"` - For Pubkey and program utilities  
-- `ed25519-dalek = "1.0"` - For Ed25519 signing (optional, behind `permit-signing` feature)
+**Core (minimal):**
+- `borsh = "1.5.7"` - For serialization
+- `solana-sdk = "1.18.26"` - For Pubkey and signing utilities  
 - `hex = "0.4.3"` - For hex string utilities
-- `rand = "0.7"` - For keypair generation
+
+**Optional (testing only):**
 - `serde_json = "1.0"` - For parsing Solana keypair JSON files
+- `reqwest = "0.11"` - For HTTP requests to exchange API
+- `tokio = "1.0"` - For async runtime
 
 ## Features
 
-- `permit-signing` (default): Enables Ed25519 signing functionality
+- `testing`: Enables additional dependencies needed for test binaries and examples
 
 ## License
 
@@ -40,5 +43,7 @@ MIT OR Apache-2.0
 
 1. Place a `devkey.json` file in the parent directory with your secret key
 2. `cd ambient-ember-rust-sdk`
-3. `cargo run --bin signature_checker`: Verifies using custom params if our signer is able to generate a matching signature against a given signature when the same params from a successful transaction are given.
-4. `cargo run --bin test_signature_and_place_order`: Signs a permit, creates a signature and sends a signed payload to the exchange endpoint to place an order and verifies the success of the order.
+3. `cargo run --bin signature_checker --features testing`: Verifies using custom params if our signer is able to generate a matching signature against a given signature when the same params from a successful transaction are given.
+4. `cargo run --bin test_signature_and_place_order --features testing`: Signs a permit, creates a signature and sends a signed payload to the exchange endpoint to place an order and verifies the success of the order.
+
+**Note:** The `--features testing` flag is required to enable the optional dependencies (serde_json, reqwest, tokio) needed by the test binaries.
