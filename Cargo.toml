@@ -3,5 +3,6 @@ cargo-features = ["edition2024"]
 [workspace]
 members = [
     "core",
+    "ambient-signer",
 ]
 resolver = "3"

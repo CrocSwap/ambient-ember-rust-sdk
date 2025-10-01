@@ -47,3 +47,9 @@ coverage/
 leaderboard-state.bin
 
 tmp*
+
+test-keypair.json
+CHANGES.md
+.idea
+.claude
+devkey.json

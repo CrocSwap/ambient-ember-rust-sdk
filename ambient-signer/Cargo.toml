@@ -1,0 +1,20 @@
+[package]
+name = "ambient-signer"
+version = "0.1.0"
+edition = "2021"
+description = "Minimal dependencies crate for signing and sending payloads to Ambient Exchange"
+license = "MIT OR Apache-2.0"
+
+[features]
+default = []
+testing = ["dep:serde_json", "dep:reqwest", "dep:tokio"]
+
+[dependencies]
+borsh = "1.5.7"
+solana-sdk = "1.18.26"
+hex = "0.4.3"
+
+# Optional dependencies for testing/examples
+serde_json = { version = "1.0", optional = true }
+reqwest = { version = "0.11", features = ["json"], optional = true }
+tokio = { version = "1.0", features = ["full"], optional = true }
