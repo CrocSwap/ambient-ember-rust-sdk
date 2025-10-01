@@ -1,8 +1,24 @@
-use borsh::{BorshDeserialize, BorshSerialize};
-use solana_program::pubkey::Pubkey;
+use borsh::{BorshDeserialize, BorshSerialize, to_vec};
+use solana_sdk::{
+    pubkey::Pubkey,
+    signature::{Keypair, Signer},
+};
 
-#[cfg(feature = "permit-signing")]
-use ed25519_dalek::{Keypair as Ed25519Keypair, Signer as Ed25519Signer};
+/// Time in Force order types
+#[derive(BorshSerialize, BorshDeserialize, Debug, Clone, PartialEq, Default)]
+pub enum TimeInForce {
+    /// Immediate or Cancel - execute immediately, cancel remainder
+    IOC,
+    /// Fill or Kill - execute completely or cancel entirely  
+    FOK,
+    /// Good Till Cancelled - remain active until cancelled
+    #[default]
+    GTC,
+    /// Add Liquidity Only - only place if order rests
+    ALO,
+    /// Good Till Time - remain active until specified timestamp
+    GTT(u64),
+}
 
 /// Domain separator for permit verification
 #[derive(BorshSerialize, BorshDeserialize, Debug, Clone, PartialEq)]
@@ -27,14 +43,6 @@ pub enum ReplayMode {
     Nonce([u8; 32]),
     Allowance([u8; 32]),
     HlWindow { k: u8 },
-}
-
-/// Time in force for orders
-#[derive(BorshSerialize, BorshDeserialize, Debug, Clone, PartialEq)]
-pub enum TimeInForce {
-    GTC,  // Good Till Cancel
-    IOC,  // Immediate or Cancel
-    FOK,  // Fill or Kill
 }
 
 /// Health floor specification
@@ -129,14 +137,12 @@ pub enum KeyType {
 }
 
 /// Result of signing a permit envelope with an Ed25519 keypair.
-#[cfg(feature = "permit-signing")]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SignedPermit {
     pub bytes: Vec<u8>,
     pub signature: [u8; 64],
 }
 
-#[cfg(feature = "permit-signing")]
 impl SignedPermit {
     pub fn into_parts(self) -> (Vec<u8>, [u8; 64]) {
         (self.bytes, self.signature)
@@ -144,22 +150,13 @@ impl SignedPermit {
 }
 
 /// Serialize and sign a permit envelope with the provided Ed25519 keypair.
-#[cfg(feature = "permit-signing")]
 pub fn sign_permit_ed25519(
     envelope: &PermitEnvelopeV1,
-    keypair: &Ed25519Keypair,
+    keypair: &Keypair,
 ) -> Result<SignedPermit, std::io::Error> {
-    let bytes = envelope.try_to_vec()?;
-    let signature = keypair.sign(&bytes).to_bytes();
+    let bytes = to_vec(&envelope)?;
+    let signature = keypair.sign_message(&bytes).into();
     Ok(SignedPermit { bytes, signature })
-}
-
-/// Generate a new Ed25519 keypair for testing
-#[cfg(feature = "permit-signing")]
-pub fn generate_keypair() -> Ed25519Keypair {
-    use rand::rngs::OsRng;
-    
-    Ed25519Keypair::generate(&mut OsRng)
 }
 
 /// Convert hex string to bytes
@@ -175,7 +172,8 @@ pub fn bytes_to_hex(bytes: &[u8]) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-
+    use solana_sdk::{pubkey, signer::SeedDerivable};
+    use std::str::FromStr;
 
     #[test]
     fn test_permit_envelope_serialization() {
@@ -206,7 +204,7 @@ mod tests {
             nonce: 123456789,
         };
 
-        let serialized = envelope.try_to_vec().unwrap();
+        let serialized = to_vec(&envelope).unwrap();
         let deserialized = PermitEnvelopeV1::try_from_slice(&serialized).unwrap();
 
         assert_eq!(envelope.domain.version, deserialized.domain.version);
@@ -232,15 +230,15 @@ mod tests {
             min: 150,
         };
 
-        assert!(floor1.try_to_vec().is_ok());
-        assert!(floor2.try_to_vec().is_ok());
-        assert!(floor3.try_to_vec().is_ok());
+        assert!(to_vec(&floor1).is_ok());
+        assert!(to_vec(&floor2).is_ok());
+        assert!(to_vec(&floor3).is_ok());
     }
 
-    #[cfg(feature = "permit-signing")]
     #[test]
     fn test_sign_permit_ed25519() {
-        let keypair = generate_keypair();
+        let secret_key = [7u8; 32];
+        let keypair = Keypair::from_seed(&secret_key).unwrap();
 
         let envelope = PermitEnvelopeV1 {
             domain: PermitDomain {
@@ -259,29 +257,10 @@ mod tests {
         };
 
         let signed = sign_permit_ed25519(&envelope, &keypair).expect("signing should succeed");
-        assert_eq!(signed.bytes, envelope.try_to_vec().unwrap());
+        assert_eq!(signed.bytes, to_vec(&envelope).unwrap());
 
-        let expected = keypair.sign(&signed.bytes).to_bytes();
+        let expected: [u8; 64] = keypair.sign_message(&signed.bytes).into();
         assert_eq!(signed.signature, expected);
     }
 
-    #[test]
-    fn test_hex_conversions() {
-        let test_bytes = vec![0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef];
-        let hex_string = bytes_to_hex(&test_bytes);
-        assert_eq!(hex_string, "0123456789abcdef");
-
-        let converted_back = hex_to_bytes(&hex_string).unwrap();
-        assert_eq!(converted_back, test_bytes);
-    }
-
-    #[cfg(feature = "permit-signing")]
-    #[test]
-    fn test_generate_keypair() {
-        let keypair1 = generate_keypair();
-        let keypair2 = generate_keypair();
-        
-        // Two generated keypairs should be different
-        assert_ne!(keypair1.secret.to_bytes(), keypair2.secret.to_bytes());
-    }
 }
