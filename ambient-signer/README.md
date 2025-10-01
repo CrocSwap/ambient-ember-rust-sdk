@@ -41,7 +41,7 @@ MIT OR Apache-2.0
 
 ## Tests:
 
-1. Place a `devkey.json` file in the parent directory with your secret key
+1. Place a funded `devkey.json` file in the parent directory with your secret key
 2. `cd ambient-ember-rust-sdk`
 3. `cargo run --bin signature_checker --features testing`: Verifies using custom params if our signer is able to generate a matching signature against a given signature when the same params from a successful transaction are given.
 4. `cargo run --bin test_signature_and_place_order --features testing`: Signs a permit, creates a signature and sends a signed payload to the exchange endpoint to place an order and verifies the success of the order.
